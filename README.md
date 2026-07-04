@@ -1,12 +1,14 @@
 # BoardFlow
 
+[![CI](https://github.com/KoDiK2005/boardflow/actions/workflows/ci.yml/badge.svg)](https://github.com/KoDiK2005/boardflow/actions/workflows/ci.yml)
+
 Trello-подобный таск-менеджер: доски, списки, карточки, drag-and-drop.
 
 ## Стек
 
 - **Backend**: Node.js, TypeScript, Express, Prisma ORM, PostgreSQL, JWT-аутентификация
 - **Frontend**: React, TypeScript, Vite, dnd-kit
-- **Инфраструктура**: Docker Compose (Postgres + backend + frontend)
+- **Инфраструктура**: Docker Compose (Postgres + backend + frontend), GitHub Actions CI
 
 ## Структура
 
@@ -24,12 +26,19 @@ docker compose up --build
 Backend: http://localhost:4000
 Frontend: http://localhost:5173
 
+## Тесты
+
+```bash
+cd backend && npm test
+```
+
 ## Roadmap
 
 - [x] Структура монорепо
-- [ ] Auth (регистрация/логин, JWT)
-- [ ] CRUD досок/списков/карточек
-- [ ] Drag-and-drop сортировка
-- [ ] Метки, дедлайны, комментарии
+- [x] Auth (регистрация/логин, JWT)
+- [x] CRUD досок/списков/карточек
+- [x] Drag-and-drop сортировка
+- [x] Метки, дедлайны, комментарии
+- [x] Тесты backend + CI
 - [ ] Realtime-обновления (WebSocket)
 - [ ] Приглашение участников на доску
