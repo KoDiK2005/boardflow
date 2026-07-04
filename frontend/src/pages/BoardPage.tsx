@@ -17,6 +17,8 @@ export function BoardPage() {
   const [newListTitle, setNewListTitle] = useState("");
   const [newLabelTitle, setNewLabelTitle] = useState("");
   const [openCard, setOpenCard] = useState<Card | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeLabelIds, setActiveLabelIds] = useState<Set<string>>(new Set());
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const labelColors = ["#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0", "#0079bf"];
@@ -135,10 +137,33 @@ export function BoardPage() {
     setOpenCard(null);
   }
 
+  function toggleLabelFilter(labelId: string) {
+    setActiveLabelIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(labelId)) next.delete(labelId);
+      else next.add(labelId);
+      return next;
+    });
+  }
+
   if (!board || !user) return <p>Загрузка...</p>;
 
   const myRole = getMyRole(board, user.id);
   const editable = canEdit(myRole);
+
+  const query = searchQuery.trim().toLowerCase();
+  const filterActive = query !== "" || activeLabelIds.size > 0;
+
+  function cardMatches(card: Card) {
+    const matchesQuery = !query || card.title.toLowerCase().includes(query);
+    const matchesLabels =
+      activeLabelIds.size === 0 || card.labels.some((l) => activeLabelIds.has(l.id));
+    return matchesQuery && matchesLabels;
+  }
+
+  const visibleLists = filterActive
+    ? board.lists.map((l) => ({ ...l, cards: l.cards.filter(cardMatches) }))
+    : board.lists;
 
   return (
     <div className="board-page">
@@ -179,9 +204,38 @@ export function BoardPage() {
         </form>
       )}
 
-      <DndContext sensors={sensors} onDragEnd={editable ? handleDragEnd : undefined}>
+      <div className="board-toolbar">
+        <input
+          className="search-input"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Поиск карточек по названию..."
+        />
+        {board.labels.length > 0 && (
+          <div className="label-filters">
+            {board.labels.map((label) => (
+              <button
+                key={label.id}
+                className={`label-chip ${activeLabelIds.has(label.id) ? "active" : ""}`}
+                style={{ backgroundColor: label.color }}
+                onClick={() => toggleLabelFilter(label.id)}
+              >
+                {label.title}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {filterActive && (
+        <p className="filter-notice">
+          Показаны карточки по фильтру. Перетаскивание временно отключено — сбросьте фильтр, чтобы
+          изменить порядок карточек.
+        </p>
+      )}
+
+      <DndContext sensors={sensors} onDragEnd={editable && !filterActive ? handleDragEnd : undefined}>
         <div className="lists-row">
-          {board.lists.map((list) => (
+          {visibleLists.map((list) => (
             <ListColumn
               key={list.id}
               list={list}
