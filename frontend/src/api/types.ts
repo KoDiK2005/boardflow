@@ -19,6 +19,22 @@ export interface List {
   cards: Card[];
 }
 
+export interface Label {
+  id: string;
+  title: string;
+  color: string;
+  boardId: string;
+}
+
+export interface Comment {
+  id: string;
+  text: string;
+  cardId: string;
+  authorId: string;
+  createdAt: string;
+  author: { id: string; name: string };
+}
+
 export interface Card {
   id: string;
   title: string;
@@ -26,8 +42,10 @@ export interface Card {
   position: number;
   dueDate: string | null;
   listId: string;
+  labels: Label[];
 }
 
 export interface BoardDetail extends Board {
   lists: List[];
+  labels: Label[];
 }

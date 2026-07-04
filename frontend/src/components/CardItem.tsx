@@ -2,7 +2,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "../api/types";
 
-export function CardItem({ card }: { card: Card }) {
+export function CardItem({ card, onOpen }: { card: Card; onOpen: (card: Card) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: card.id,
     data: { type: "card", card },
@@ -15,7 +15,21 @@ export function CardItem({ card }: { card: Card }) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="card-item">
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="card-item"
+      onClick={() => onOpen(card)}
+    >
+      {card.labels.length > 0 && (
+        <div className="card-labels">
+          {card.labels.map((label) => (
+            <span key={label.id} className="label-dot" style={{ backgroundColor: label.color }} />
+          ))}
+        </div>
+      )}
       <p>{card.title}</p>
       {card.dueDate && <span className="due-date">{new Date(card.dueDate).toLocaleDateString()}</span>}
     </div>

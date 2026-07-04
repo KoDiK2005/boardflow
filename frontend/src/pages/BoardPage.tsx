@@ -3,13 +3,18 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { BoardDetail, Card } from "../api/types";
+import { CardModal } from "../components/CardModal";
 import { ListColumn } from "../components/ListColumn";
 
 export function BoardPage() {
   const { boardId } = useParams<{ boardId: string }>();
   const [board, setBoard] = useState<BoardDetail | null>(null);
   const [newListTitle, setNewListTitle] = useState("");
+  const [newLabelTitle, setNewLabelTitle] = useState("");
+  const [openCard, setOpenCard] = useState<Card | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const labelColors = ["#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0", "#0079bf"];
 
   useEffect(() => {
     if (!boardId) return;
@@ -27,9 +32,12 @@ export function BoardPage() {
   async function handleAddCard(listId: string, title: string) {
     if (!board) return;
     const { data } = await api.post<Card>("/cards", { listId, title });
+    const cardWithLabels: Card = { ...data, labels: [] };
     setBoard({
       ...board,
-      lists: board.lists.map((l) => (l.id === listId ? { ...l, cards: [...l.cards, data] } : l)),
+      lists: board.lists.map((l) =>
+        l.id === listId ? { ...l, cards: [...l.cards, cardWithLabels] } : l,
+      ),
     });
   }
 
@@ -81,15 +89,60 @@ export function BoardPage() {
     });
   }
 
+  async function handleAddLabel(e: FormEvent) {
+    e.preventDefault();
+    if (!newLabelTitle.trim() || !board) return;
+    const color = labelColors[board.labels.length % labelColors.length];
+    const { data } = await api.post("/labels", { boardId: board.id, title: newLabelTitle, color });
+    setBoard({ ...board, labels: [...board.labels, data] });
+    setNewLabelTitle("");
+  }
+
+  function handleCardUpdate(updated: Card) {
+    if (!board) return;
+    setBoard({
+      ...board,
+      lists: board.lists.map((l) => ({
+        ...l,
+        cards: l.cards.map((c) => (c.id === updated.id ? updated : c)),
+      })),
+    });
+    setOpenCard(updated);
+  }
+
+  function handleCardDelete(cardId: string) {
+    if (!board) return;
+    setBoard({
+      ...board,
+      lists: board.lists.map((l) => ({ ...l, cards: l.cards.filter((c) => c.id !== cardId) })),
+    });
+    setOpenCard(null);
+  }
+
   if (!board) return <p>Загрузка...</p>;
 
   return (
     <div className="board-page">
       <h1>{board.title}</h1>
+
+      <form onSubmit={handleAddLabel} className="new-label-form">
+        <input
+          value={newLabelTitle}
+          onChange={(e) => setNewLabelTitle(e.target.value)}
+          placeholder="Новая метка"
+        />
+        <button type="submit">Добавить метку</button>
+      </form>
+
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="lists-row">
           {board.lists.map((list) => (
-            <ListColumn key={list.id} list={list} onAddCard={handleAddCard} />
+            <ListColumn
+              key={list.id}
+              list={list}
+              onAddCard={handleAddCard}
+              onOpenCard={setOpenCard}
+            />
           ))}
         </div>
       </DndContext>
@@ -101,6 +154,16 @@ export function BoardPage() {
         />
         <button type="submit">Добавить список</button>
       </form>
+
+      {openCard && (
+        <CardModal
+          card={openCard}
+          boardLabels={board.labels}
+          onClose={() => setOpenCard(null)}
+          onUpdate={handleCardUpdate}
+          onDelete={handleCardDelete}
+        />
+      )}
     </div>
   );
 }
