@@ -1,4 +1,13 @@
-import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import {
+  closestCenter,
+  CollisionDetection,
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import { horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
@@ -20,6 +29,16 @@ export function BoardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeLabelIds, setActiveLabelIds] = useState<Set<string>>(new Set());
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const collisionDetection: CollisionDetection = (args) => {
+    if (args.active.data.current?.type === "list") {
+      const listContainers = args.droppableContainers.filter(
+        (c) => c.data.current?.type === "list",
+      );
+      return closestCenter({ ...args, droppableContainers: listContainers });
+    }
+    return closestCenter(args);
+  };
 
   const labelColors = ["#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0", "#0079bf"];
 
@@ -51,10 +70,31 @@ export function BoardPage() {
     return board?.lists.find((l) => l.cards.some((c) => c.id === cardId)) ?? null;
   }
 
+  async function handleListDragEnd(event: DragEndEvent) {
+    if (!board) return;
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = board.lists.findIndex((l) => l.id === active.id);
+    const newIndex = board.lists.findIndex((l) => l.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = [...board.lists];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    setBoard({ ...board, lists: reordered });
+
+    await api.patch(`/lists/${moved.id}`, { position: newIndex });
+  }
+
   async function handleDragEnd(event: DragEndEvent) {
     if (!board) return;
     const { active, over } = event;
     if (!over) return;
+
+    if (active.data.current?.type === "list") {
+      return handleListDragEnd(event);
+    }
 
     const sourceList = findCardList(active.id as string);
     if (!sourceList) return;
@@ -233,19 +273,28 @@ export function BoardPage() {
         </p>
       )}
 
-      <DndContext sensors={sensors} onDragEnd={editable && !filterActive ? handleDragEnd : undefined}>
-        <div className="lists-row">
-          {visibleLists.map((list) => (
-            <ListColumn
-              key={list.id}
-              list={list}
-              onAddCard={handleAddCard}
-              onOpenCard={setOpenCard}
-              onDeleteList={handleDeleteList}
-              editable={editable}
-            />
-          ))}
-        </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetection}
+        onDragEnd={editable && !filterActive ? handleDragEnd : undefined}
+      >
+        <SortableContext
+          items={visibleLists.map((l) => l.id)}
+          strategy={horizontalListSortingStrategy}
+        >
+          <div className="lists-row">
+            {visibleLists.map((list) => (
+              <ListColumn
+                key={list.id}
+                list={list}
+                onAddCard={handleAddCard}
+                onOpenCard={setOpenCard}
+                onDeleteList={handleDeleteList}
+                editable={editable}
+              />
+            ))}
+          </div>
+        </SortableContext>
       </DndContext>
       {editable && (
         <form onSubmit={handleAddList} className="new-list-form">

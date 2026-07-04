@@ -1,5 +1,6 @@
-import { useDroppable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { FormEvent, useState } from "react";
 import { List } from "../api/types";
 import { CardItem } from "./CardItem";
@@ -14,7 +15,17 @@ interface Props {
 
 export function ListColumn({ list, onAddCard, onOpenCard, onDeleteList, editable }: Props) {
   const [title, setTitle] = useState("");
-  const { setNodeRef } = useDroppable({ id: list.id, data: { type: "list", list } });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: list.id,
+    data: { type: "list", list },
+    disabled: !editable,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -24,11 +35,16 @@ export function ListColumn({ list, onAddCard, onOpenCard, onDeleteList, editable
   }
 
   return (
-    <div className="list-column" ref={setNodeRef}>
-      <div className="list-header">
+    <div className="list-column" ref={setNodeRef} style={style}>
+      <div className="list-header" {...attributes} {...listeners}>
         <h3>{list.title}</h3>
         {editable && (
-          <button className="delete-list-btn" onClick={() => onDeleteList(list.id)} title="Удалить список">
+          <button
+            className="delete-list-btn"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => onDeleteList(list.id)}
+            title="Удалить список"
+          >
             ×
           </button>
         )}
