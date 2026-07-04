@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { api } from "../api/client";
+import { socket } from "../api/socket";
 import { Card, Comment, Label } from "../api/types";
 
 interface Props {
@@ -21,13 +22,25 @@ export function CardModal({ card, boardLabels, onClose, onUpdate, onDelete }: Pr
     api.get<Comment[]>("/comments", { params: { cardId: card.id } }).then((res) => setComments(res.data));
   }, [card.id]);
 
+  useEffect(() => {
+    function onCommentCreated(comment: Comment) {
+      if (comment.cardId !== card.id) return;
+      setComments((prev) => (prev.some((c) => c.id === comment.id) ? prev : [...prev, comment]));
+    }
+
+    socket.on("comment:created", onCommentCreated);
+    return () => {
+      socket.off("comment:created", onCommentCreated);
+    };
+  }, [card.id]);
+
   async function handleSave() {
     const { data } = await api.patch<Card>(`/cards/${card.id}`, {
       title,
       description: description || null,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
     });
-    onUpdate({ ...data, labels: card.labels });
+    onUpdate(data);
   }
 
   async function handleToggleLabel(label: Label) {

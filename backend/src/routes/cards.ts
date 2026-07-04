@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { assertListOwnership } from "./lists";
+import { emitToBoard } from "../socket";
 
 const router = Router();
 router.use(requireAuth);
@@ -47,7 +48,9 @@ router.post("/", async (req: AuthRequest, res) => {
       listId: list.id,
       position: count,
     },
+    include: { labels: true },
   });
+  emitToBoard(list.boardId, "card:created", card);
   res.status(201).json(card);
 });
 
@@ -70,7 +73,9 @@ router.patch("/:id", async (req: AuthRequest, res) => {
       ...rest,
       ...(dueDate !== undefined ? { dueDate: dueDate ? new Date(dueDate) : null } : {}),
     },
+    include: { labels: true },
   });
+  emitToBoard(card.list.boardId, "card:updated", updated);
   res.json(updated);
 });
 
@@ -79,6 +84,7 @@ router.delete("/:id", async (req: AuthRequest, res) => {
   if (!card) return res.status(404).json({ error: "Card not found" });
 
   await prisma.card.delete({ where: { id: card.id } });
+  emitToBoard(card.list.boardId, "card:deleted", { id: card.id });
   res.status(204).send();
 });
 

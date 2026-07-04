@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { assertBoardOwnership } from "./boards";
+import { emitToBoard } from "../socket";
 
 const router = Router();
 router.use(requireAuth);
@@ -34,6 +35,7 @@ router.post("/", async (req: AuthRequest, res) => {
   const label = await prisma.label.create({
     data: { title: parsed.data.title, color: parsed.data.color, boardId: board.id },
   });
+  emitToBoard(board.id, "label:created", label);
   res.status(201).json(label);
 });
 
@@ -58,6 +60,11 @@ router.post("/:id/cards/:cardId", async (req: AuthRequest, res) => {
     where: { id: card.id },
     data: { labels: { connect: { id: label.id } } },
   });
+  emitToBoard(label.boardId, "card:label-changed", {
+    cardId: card.id,
+    label,
+    attached: true,
+  });
   res.status(204).send();
 });
 
@@ -74,6 +81,11 @@ router.delete("/:id/cards/:cardId", async (req: AuthRequest, res) => {
     where: { id: req.params.cardId },
     data: { labels: { disconnect: { id: label.id } } },
   });
+  emitToBoard(label.boardId, "card:label-changed", {
+    cardId: req.params.cardId,
+    label,
+    attached: false,
+  });
   res.status(204).send();
 });
 
@@ -87,6 +99,7 @@ router.delete("/:id", async (req: AuthRequest, res) => {
   }
 
   await prisma.label.delete({ where: { id: label.id } });
+  emitToBoard(label.boardId, "label:deleted", { id: label.id });
   res.status(204).send();
 });
 

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
+import { emitToBoard } from "../socket";
 
 const router = Router();
 router.use(requireAuth);
@@ -46,6 +47,7 @@ router.post("/", async (req: AuthRequest, res) => {
     data: { text: parsed.data.text, cardId: card.id, authorId: req.userId! },
     include: { author: { select: { id: true, name: true } } },
   });
+  emitToBoard(card.list.boardId, "comment:created", comment);
   res.status(201).json(comment);
 });
 
