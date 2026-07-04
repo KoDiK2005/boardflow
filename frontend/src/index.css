@@ -98,6 +98,38 @@ body {
   padding: 1rem 2rem;
 }
 
+.board-title-input {
+  font-size: 1.75rem;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  padding: 0.25rem;
+  margin-bottom: 0.5rem;
+  color: #172b4d;
+  width: 100%;
+  max-width: 500px;
+}
+
+.board-title-input:focus {
+  outline: 1px solid #0052cc;
+  border-radius: 4px;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.delete-list-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #5e6c84;
+  line-height: 1;
+}
+
 .lists-row {
   display: flex;
   gap: 1rem;

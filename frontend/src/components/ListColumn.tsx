@@ -8,9 +8,10 @@ interface Props {
   list: List;
   onAddCard: (listId: string, title: string) => void;
   onOpenCard: (card: List["cards"][number]) => void;
+  onDeleteList: (listId: string) => void;
 }
 
-export function ListColumn({ list, onAddCard, onOpenCard }: Props) {
+export function ListColumn({ list, onAddCard, onOpenCard, onDeleteList }: Props) {
   const [title, setTitle] = useState("");
   const { setNodeRef } = useDroppable({ id: list.id, data: { type: "list", list } });
 
@@ -23,7 +24,12 @@ export function ListColumn({ list, onAddCard, onOpenCard }: Props) {
 
   return (
     <div className="list-column" ref={setNodeRef}>
-      <h3>{list.title}</h3>
+      <div className="list-header">
+        <h3>{list.title}</h3>
+        <button className="delete-list-btn" onClick={() => onDeleteList(list.id)} title="Удалить список">
+          ×
+        </button>
+      </div>
       <SortableContext items={list.cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <div className="cards">
           {list.cards.map((card) => (

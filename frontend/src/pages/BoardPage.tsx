@@ -89,6 +89,18 @@ export function BoardPage() {
     });
   }
 
+  async function handleRenameBoard(title: string) {
+    if (!board || !title.trim() || title === board.title) return;
+    await api.patch(`/boards/${board.id}`, { title });
+    setBoard({ ...board, title });
+  }
+
+  async function handleDeleteList(listId: string) {
+    if (!board) return;
+    await api.delete(`/lists/${listId}`);
+    setBoard({ ...board, lists: board.lists.filter((l) => l.id !== listId) });
+  }
+
   async function handleAddLabel(e: FormEvent) {
     e.preventDefault();
     if (!newLabelTitle.trim() || !board) return;
@@ -123,7 +135,12 @@ export function BoardPage() {
 
   return (
     <div className="board-page">
-      <h1>{board.title}</h1>
+      <input
+        className="board-title-input"
+        defaultValue={board.title}
+        key={board.title}
+        onBlur={(e) => handleRenameBoard(e.target.value)}
+      />
 
       <form onSubmit={handleAddLabel} className="new-label-form">
         <input
@@ -142,6 +159,7 @@ export function BoardPage() {
               list={list}
               onAddCard={handleAddCard}
               onOpenCard={setOpenCard}
+              onDeleteList={handleDeleteList}
             />
           ))}
         </div>
