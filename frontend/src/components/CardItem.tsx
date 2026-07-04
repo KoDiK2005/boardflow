@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { isOverdue } from "../api/dates";
 import { Card } from "../api/types";
 
 export function CardItem({ card, onOpen }: { card: Card; onOpen: (card: Card) => void }) {
@@ -31,7 +32,11 @@ export function CardItem({ card, onOpen }: { card: Card; onOpen: (card: Card) =>
         </div>
       )}
       <p>{card.title}</p>
-      {card.dueDate && <span className="due-date">{new Date(card.dueDate).toLocaleDateString()}</span>}
+      {card.dueDate && (
+        <span className={`due-date ${isOverdue(card.dueDate) ? "overdue" : ""}`}>
+          {new Date(card.dueDate).toLocaleDateString()}
+        </span>
+      )}
     </div>
   );
 }

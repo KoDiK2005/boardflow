@@ -160,6 +160,15 @@ body {
   margin-top: 0.25rem;
 }
 
+.due-date.overdue {
+  color: white;
+  background: #de350b;
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
 .new-card-form,
 .new-list-form {
   display: flex;
