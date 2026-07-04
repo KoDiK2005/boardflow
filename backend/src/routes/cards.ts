@@ -72,11 +72,18 @@ router.patch("/:id", async (req: AuthRequest, res) => {
   }
 
   const { dueDate, ...rest } = parsed.data;
+  const dueDateChanged =
+    dueDate !== undefined &&
+    (dueDate === null
+      ? card.dueDate !== null
+      : !card.dueDate || new Date(dueDate).getTime() !== card.dueDate.getTime());
+
   const updated = await prisma.card.update({
     where: { id: card.id },
     data: {
       ...rest,
       ...(dueDate !== undefined ? { dueDate: dueDate ? new Date(dueDate) : null } : {}),
+      ...(dueDateChanged ? { dueSoonNotifiedAt: null, overdueNotifiedAt: null } : {}),
     },
     include: { labels: true, _count: { select: { attachments: true } } },
   });

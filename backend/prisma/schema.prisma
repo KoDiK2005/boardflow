@@ -68,14 +68,16 @@ model List {
 }
 
 model Card {
-  id          String    @id @default(uuid())
-  title       String
-  description String?
-  position    Int
-  dueDate     DateTime?
-  list        List      @relation(fields: [listId], references: [id], onDelete: Cascade)
-  listId      String
-  createdAt   DateTime  @default(now())
+  id                String    @id @default(uuid())
+  title             String
+  description       String?
+  position          Int
+  dueDate           DateTime?
+  dueSoonNotifiedAt DateTime?
+  overdueNotifiedAt DateTime?
+  list              List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  listId            String
+  createdAt         DateTime  @default(now())
 
   labels      Label[]
   comments    Comment[]
@@ -129,6 +131,8 @@ enum NotificationType {
   ROLE_CHANGED
   COMMENT
   MENTION
+  DUE_SOON
+  OVERDUE
 }
 
 model Notification {
