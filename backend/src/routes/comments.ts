@@ -80,6 +80,10 @@ router.delete("/:id", async (req: AuthRequest, res) => {
   if (!canEdit(role)) return res.status(404).json({ error: "Comment not found" });
 
   await prisma.comment.delete({ where: { id: comment.id } });
+  emitToBoard(comment.card.list.boardId, "comment:deleted", {
+    id: comment.id,
+    cardId: comment.cardId,
+  });
   res.status(204).send();
 });
 

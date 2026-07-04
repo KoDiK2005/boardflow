@@ -400,6 +400,20 @@ body {
   margin: 0.25rem 0 0;
 }
 
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.delete-comment-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #5e6c84;
+  line-height: 1;
+}
+
 .new-comment-form {
   display: flex;
   gap: 0.5rem;

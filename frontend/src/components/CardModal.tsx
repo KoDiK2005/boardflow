@@ -29,20 +29,37 @@ export function CardModal({ card, boardLabels, editable, onClose, onUpdate, onDe
       setComments((prev) => (prev.some((c) => c.id === comment.id) ? prev : [...prev, comment]));
     }
 
+    function onCommentDeleted({ id, cardId }: { id: string; cardId: string }) {
+      if (cardId !== card.id) return;
+      setComments((prev) => prev.filter((c) => c.id !== id));
+    }
+
     socket.on("comment:created", onCommentCreated);
+    socket.on("comment:deleted", onCommentDeleted);
     return () => {
       socket.off("comment:created", onCommentCreated);
+      socket.off("comment:deleted", onCommentDeleted);
     };
   }, [card.id]);
 
   async function handleSave() {
     if (!editable) return;
+    const currentDueDate = card.dueDate ? card.dueDate.slice(0, 10) : "";
+    const unchanged =
+      title === card.title && description === (card.description ?? "") && dueDate === currentDueDate;
+    if (unchanged) return;
+
     const { data } = await api.patch<Card>(`/cards/${card.id}`, {
       title,
       description: description || null,
       dueDate: dueDate ? new Date(dueDate).toISOString() : null,
     });
     onUpdate(data);
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    await api.delete(`/comments/${commentId}`);
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
   }
 
   async function handleToggleLabel(label: Label) {
@@ -128,7 +145,18 @@ export function CardModal({ card, boardLabels, editable, onClose, onUpdate, onDe
           <div className="comments-list">
             {comments.map((c) => (
               <div key={c.id} className="comment">
-                <strong>{c.author.name}</strong>
+                <div className="comment-header">
+                  <strong>{c.author.name}</strong>
+                  {editable && (
+                    <button
+                      className="delete-comment-btn"
+                      onClick={() => handleDeleteComment(c.id)}
+                      title="Удалить комментарий"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
                 <p>{c.text}</p>
               </div>
             ))}
