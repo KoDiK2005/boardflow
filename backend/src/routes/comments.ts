@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { hasBoardAccess } from "../lib/access";
+import { canEdit, getBoardRole, hasBoardAccess } from "../lib/access";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { emitToBoard } from "../socket";
@@ -23,6 +23,16 @@ async function assertCardAccess(cardId: string, userId: string) {
   return allowed ? card : null;
 }
 
+async function assertCardEditAccess(cardId: string, userId: string) {
+  const card = await prisma.card.findUnique({
+    where: { id: cardId },
+    include: { list: { include: { board: true } } },
+  });
+  if (!card) return null;
+  const role = await getBoardRole(card.list.board.ownerId, card.list.boardId, userId);
+  return canEdit(role) ? card : null;
+}
+
 router.get("/", async (req: AuthRequest, res) => {
   const cardId = req.query.cardId as string | undefined;
   if (!cardId) return res.status(400).json({ error: "cardId is required" });
@@ -42,7 +52,7 @@ router.post("/", async (req: AuthRequest, res) => {
   const parsed = createCommentSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
-  const card = await assertCardAccess(parsed.data.cardId, req.userId!);
+  const card = await assertCardEditAccess(parsed.data.cardId, req.userId!);
   if (!card) return res.status(404).json({ error: "Card not found" });
 
   const comment = await prisma.comment.create({
@@ -58,12 +68,14 @@ router.delete("/:id", async (req: AuthRequest, res) => {
     where: { id: req.params.id },
     include: { card: { include: { list: { include: { board: true } } } } },
   });
-  if (
-    !comment ||
-    !(await hasBoardAccess(comment.card.list.board.ownerId, comment.card.list.boardId, req.userId!))
-  ) {
-    return res.status(404).json({ error: "Comment not found" });
-  }
+  if (!comment) return res.status(404).json({ error: "Comment not found" });
+
+  const role = await getBoardRole(
+    comment.card.list.board.ownerId,
+    comment.card.list.boardId,
+    req.userId!,
+  );
+  if (!canEdit(role)) return res.status(404).json({ error: "Comment not found" });
 
   await prisma.comment.delete({ where: { id: comment.id } });
   res.status(204).send();

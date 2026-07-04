@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { hasBoardAccess } from "../lib/access";
+import { canEdit, canManageMembers, getBoardRole, hasBoardAccess } from "../lib/access";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { emitToBoard } from "../socket";
@@ -9,7 +9,9 @@ const router = Router();
 router.use(requireAuth);
 
 const createBoardSchema = z.object({ title: z.string().min(1) });
-const inviteMemberSchema = z.object({ email: z.string().email() });
+const roleSchema = z.enum(["ADMIN", "EDITOR", "VIEWER"]);
+const inviteMemberSchema = z.object({ email: z.string().email(), role: roleSchema.optional() });
+const updateMemberRoleSchema = z.object({ role: roleSchema });
 
 async function assertBoardOwnership(boardId: string, userId: string) {
   const board = await prisma.board.findUnique({ where: { id: boardId } });
@@ -68,8 +70,12 @@ router.patch("/:id", async (req: AuthRequest, res) => {
   const parsed = createBoardSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
-  const board = await assertBoardAccess(req.params.id, req.userId!);
+  const board = await prisma.board.findUnique({ where: { id: req.params.id } });
   if (!board) return res.status(404).json({ error: "Board not found" });
+
+  const role = await getBoardRole(board.ownerId, board.id, req.userId!);
+  if (!role) return res.status(404).json({ error: "Board not found" });
+  if (!canEdit(role)) return res.status(403).json({ error: "Insufficient permissions" });
 
   const updated = await prisma.board.update({
     where: { id: board.id },
@@ -91,8 +97,19 @@ router.post("/:id/members", async (req: AuthRequest, res) => {
   const parsed = inviteMemberSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
-  const board = await assertBoardOwnership(req.params.id, req.userId!);
+  const board = await prisma.board.findUnique({ where: { id: req.params.id } });
   if (!board) return res.status(404).json({ error: "Board not found" });
+
+  const requesterRole = await getBoardRole(board.ownerId, board.id, req.userId!);
+  if (!requesterRole) return res.status(404).json({ error: "Board not found" });
+  if (!canManageMembers(requesterRole)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+
+  const role = parsed.data.role ?? "EDITOR";
+  if (role === "ADMIN" && requesterRole !== "OWNER") {
+    return res.status(403).json({ error: "Only the board owner can grant admin access" });
+  }
 
   const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (!user) return res.status(404).json({ error: "User with this email was not found" });
@@ -107,16 +124,47 @@ router.post("/:id/members", async (req: AuthRequest, res) => {
   if (existing) return res.status(409).json({ error: "User is already a member" });
 
   const member = await prisma.boardMember.create({
-    data: { boardId: board.id, userId: user.id },
+    data: { boardId: board.id, userId: user.id, role },
     include: { user: { select: { id: true, name: true, email: true } } },
   });
   emitToBoard(board.id, "member:added", member);
   res.status(201).json(member);
 });
 
-router.delete("/:id/members/:userId", async (req: AuthRequest, res) => {
-  const board = await assertBoardOwnership(req.params.id, req.userId!);
+router.patch("/:id/members/:userId", async (req: AuthRequest, res) => {
+  const parsed = updateMemberRoleSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
+
+  const board = await prisma.board.findUnique({ where: { id: req.params.id } });
   if (!board) return res.status(404).json({ error: "Board not found" });
+
+  const requesterRole = await getBoardRole(board.ownerId, board.id, req.userId!);
+  if (!requesterRole) return res.status(404).json({ error: "Board not found" });
+  if (!canManageMembers(requesterRole)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
+  if (parsed.data.role === "ADMIN" && requesterRole !== "OWNER") {
+    return res.status(403).json({ error: "Only the board owner can grant admin access" });
+  }
+
+  const member = await prisma.boardMember.update({
+    where: { boardId_userId: { boardId: board.id, userId: req.params.userId } },
+    data: { role: parsed.data.role },
+    include: { user: { select: { id: true, name: true, email: true } } },
+  });
+  emitToBoard(board.id, "member:updated", member);
+  res.json(member);
+});
+
+router.delete("/:id/members/:userId", async (req: AuthRequest, res) => {
+  const board = await prisma.board.findUnique({ where: { id: req.params.id } });
+  if (!board) return res.status(404).json({ error: "Board not found" });
+
+  const requesterRole = await getBoardRole(board.ownerId, board.id, req.userId!);
+  if (!requesterRole) return res.status(404).json({ error: "Board not found" });
+  if (!canManageMembers(requesterRole)) {
+    return res.status(403).json({ error: "Insufficient permissions" });
+  }
 
   await prisma.boardMember.deleteMany({
     where: { boardId: board.id, userId: req.params.userId },

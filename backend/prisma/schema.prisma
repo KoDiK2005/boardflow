@@ -33,13 +33,20 @@ model Board {
   @@index([ownerId])
 }
 
+enum BoardRole {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
 model BoardMember {
-  id        String   @id @default(uuid())
-  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  id        String    @id @default(uuid())
+  board     Board     @relation(fields: [boardId], references: [id], onDelete: Cascade)
   boardId   String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
-  createdAt DateTime @default(now())
+  role      BoardRole @default(EDITOR)
+  createdAt DateTime  @default(now())
 
   @@unique([boardId, userId])
   @@index([userId])
