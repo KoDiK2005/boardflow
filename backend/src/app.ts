@@ -9,6 +9,7 @@ import cardRoutes from "./routes/cards";
 import labelRoutes from "./routes/labels";
 import commentRoutes from "./routes/comments";
 import attachmentRoutes from "./routes/attachments";
+import notificationRoutes from "./routes/notifications";
 
 export const app = express();
 
@@ -34,3 +35,4 @@ app.use("/api/cards", cardRoutes);
 app.use("/api/labels", labelRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api", attachmentRoutes);
+app.use("/api/notifications", notificationRoutes);

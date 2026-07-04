@@ -4,6 +4,7 @@ import { prisma } from "../src/lib/prisma";
 import { uploadsDir } from "../src/lib/uploads";
 
 beforeEach(async () => {
+  await prisma.notification.deleteMany();
   await prisma.attachment.deleteMany();
   await prisma.comment.deleteMany();
   await prisma.card.deleteMany();

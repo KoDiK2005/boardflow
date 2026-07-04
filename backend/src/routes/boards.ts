@@ -7,9 +7,16 @@ import {
   memberInclude,
   requireBoardWithRole,
 } from "../lib/access";
+import { notifyUser } from "../lib/notify";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { emitToBoard } from "../socket";
+
+const roleLabels: Record<string, string> = {
+  ADMIN: "администратора",
+  EDITOR: "редактора",
+  VIEWER: "наблюдателя",
+};
 
 const router = Router();
 router.use(requireAuth);
@@ -133,6 +140,12 @@ router.post("/:id/members", async (req: AuthRequest, res) => {
     include: memberInclude,
   });
   emitToBoard(ctx.board.id, "member:added", member);
+  await notifyUser(
+    user.id,
+    "BOARD_INVITE",
+    `Вас добавили на доску «${ctx.board.title}» в роли ${roleLabels[role]}`,
+    { boardId: ctx.board.id },
+  );
   res.status(201).json(member);
 });
 
@@ -155,6 +168,12 @@ router.patch("/:id/members/:userId", async (req: AuthRequest, res) => {
     include: memberInclude,
   });
   emitToBoard(ctx.board.id, "member:updated", member);
+  await notifyUser(
+    member.userId,
+    "ROLE_CHANGED",
+    `Ваша роль на доске «${ctx.board.title}» изменена на ${roleLabels[parsed.data.role]}`,
+    { boardId: ctx.board.id },
+  );
   res.json(member);
 });
 

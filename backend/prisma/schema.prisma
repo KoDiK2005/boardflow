@@ -18,6 +18,7 @@ model User {
   comments         Comment[]
   boardMemberships BoardMember[]
   attachments      Attachment[]
+  notifications    Notification[]
 }
 
 model Board {
@@ -121,4 +122,24 @@ model Attachment {
   createdAt    DateTime @default(now())
 
   @@index([cardId])
+}
+
+enum NotificationType {
+  BOARD_INVITE
+  ROLE_CHANGED
+  COMMENT
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  type      NotificationType
+  message   String
+  boardId   String?
+  cardId    String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
 }

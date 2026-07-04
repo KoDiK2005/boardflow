@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { canEdit, getBoardRole, hasBoardAccess } from "../lib/access";
+import { notifyUser } from "../lib/notify";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { emitToBoard } from "../socket";
@@ -57,11 +58,29 @@ router.post("/", async (req: AuthRequest, res) => {
   const card = await assertCardEditAccess(parsed.data.cardId, req.userId!);
   if (!card) return res.status(404).json({ error: "Card not found" });
 
+  const priorAuthors = await prisma.comment.findMany({
+    where: { cardId: card.id },
+    select: { authorId: true },
+    distinct: ["authorId"],
+  });
+
   const comment = await prisma.comment.create({
     data: { text: parsed.data.text, cardId: card.id, authorId: req.userId! },
     include: authorInclude,
   });
   emitToBoard(card.list.boardId, "comment:created", comment);
+
+  const recipients = new Set([...priorAuthors.map((c) => c.authorId), card.list.board.ownerId]);
+  recipients.delete(req.userId!);
+  for (const recipientId of recipients) {
+    await notifyUser(
+      recipientId,
+      "COMMENT",
+      `${comment.author.name} оставил(а) комментарий к карточке «${card.title}»`,
+      { boardId: card.list.boardId, cardId: card.id },
+    );
+  }
+
   res.status(201).json(comment);
 });
 
