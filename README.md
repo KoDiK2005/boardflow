@@ -42,3 +42,4 @@ cd backend && npm test
 - [x] Тесты backend + CI
 - [x] Realtime-обновления (WebSocket)
 - [x] Приглашение участников на доску
+- [x] Роли участников (ADMIN/EDITOR/VIEWER)
