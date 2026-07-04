@@ -35,6 +35,16 @@ export interface Comment {
   author: { id: string; name: string };
 }
 
+export interface Attachment {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  cardId: string;
+  createdAt: string;
+  uploadedBy: { id: string; name: string };
+}
+
 export interface Card {
   id: string;
   title: string;
@@ -43,6 +53,7 @@ export interface Card {
   dueDate: string | null;
   listId: string;
   labels: Label[];
+  _count?: { attachments: number };
 }
 
 export type BoardRole = "ADMIN" | "EDITOR" | "VIEWER";

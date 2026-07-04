@@ -400,6 +400,54 @@ body {
   overflow-y: auto;
 }
 
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f4f5f7;
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+}
+
+.attachment-name {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #0052cc;
+  text-align: left;
+  flex: 1;
+  padding: 0;
+}
+
+.attachment-size {
+  color: #5e6c84;
+  font-size: 0.75rem;
+}
+
+.delete-attachment-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #5e6c84;
+  line-height: 1;
+}
+
+.card-attachment-badge {
+  color: #5e6c84;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
 .comment {
   background: #f4f5f7;
   border-radius: 4px;

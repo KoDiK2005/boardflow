@@ -37,6 +37,9 @@ export function CardItem({ card, onOpen }: { card: Card; onOpen: (card: Card) =>
           {new Date(card.dueDate).toLocaleDateString()}
         </span>
       )}
+      {!!card._count?.attachments && (
+        <span className="card-attachment-badge">📎 {card._count.attachments}</span>
+      )}
     </div>
   );
 }
