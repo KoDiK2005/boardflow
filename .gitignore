@@ -8,3 +8,4 @@ build/
 coverage/
 .vscode/
 backend/prisma/dev.db
+*.tsbuildinfo
