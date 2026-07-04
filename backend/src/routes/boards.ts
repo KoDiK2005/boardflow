@@ -74,6 +74,7 @@ router.get("/:id", async (req: AuthRequest, res) => {
       },
       labels: true,
       members: { include: memberInclude },
+      owner: { select: { id: true, name: true } },
     },
   });
   if (!board) return res.status(404).json({ error: "Board not found" });

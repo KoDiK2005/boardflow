@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { canEdit, getBoardRole, hasBoardAccess } from "../lib/access";
+import { extractMentionedUserIds } from "../lib/mentions";
 import { notifyUser } from "../lib/notify";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
@@ -70,9 +71,27 @@ router.post("/", async (req: AuthRequest, res) => {
   });
   emitToBoard(card.list.boardId, "comment:created", comment);
 
-  const recipients = new Set([...priorAuthors.map((c) => c.authorId), card.list.board.ownerId]);
-  recipients.delete(req.userId!);
-  for (const recipientId of recipients) {
+  const mentionedUserIds = await extractMentionedUserIds(
+    parsed.data.text,
+    card.list.boardId,
+    card.list.board.ownerId,
+  );
+  mentionedUserIds.delete(req.userId!);
+
+  const watchers = new Set([...priorAuthors.map((c) => c.authorId), card.list.board.ownerId]);
+  watchers.delete(req.userId!);
+
+  for (const recipientId of mentionedUserIds) {
+    await notifyUser(
+      recipientId,
+      "MENTION",
+      `${comment.author.name} упомянул(а) вас в комментарии к карточке «${card.title}»`,
+      { boardId: card.list.boardId, cardId: card.id },
+    );
+    watchers.delete(recipientId);
+  }
+
+  for (const recipientId of watchers) {
     await notifyUser(
       recipientId,
       "COMMENT",
