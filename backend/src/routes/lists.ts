@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { canEdit, getBoardRole } from "../lib/access";
+import { canEdit, getBoardRole, requireBoardWithRole } from "../lib/access";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { emitToBoard } from "../socket";
@@ -26,17 +26,15 @@ router.post("/", async (req: AuthRequest, res) => {
   const parsed = createListSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
-  const board = await prisma.board.findUnique({ where: { id: parsed.data.boardId } });
-  if (!board) return res.status(404).json({ error: "Board not found" });
-  const role = await getBoardRole(board.ownerId, board.id, req.userId!);
-  if (!role) return res.status(404).json({ error: "Board not found" });
-  if (!canEdit(role)) return res.status(403).json({ error: "Insufficient permissions" });
+  const ctx = await requireBoardWithRole(parsed.data.boardId, req.userId!);
+  if (!ctx) return res.status(404).json({ error: "Board not found" });
+  if (!canEdit(ctx.role)) return res.status(403).json({ error: "Insufficient permissions" });
 
-  const count = await prisma.list.count({ where: { boardId: board.id } });
+  const count = await prisma.list.count({ where: { boardId: ctx.board.id } });
   const list = await prisma.list.create({
-    data: { title: parsed.data.title, boardId: board.id, position: count },
+    data: { title: parsed.data.title, boardId: ctx.board.id, position: count },
   });
-  emitToBoard(board.id, "list:created", list);
+  emitToBoard(ctx.board.id, "list:created", list);
   res.status(201).json(list);
 });
 

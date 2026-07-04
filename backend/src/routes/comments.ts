@@ -13,6 +13,8 @@ const createCommentSchema = z.object({
   text: z.string().min(1),
 });
 
+const authorInclude = { author: { select: { id: true, name: true } } } as const;
+
 async function assertCardAccess(cardId: string, userId: string) {
   const card = await prisma.card.findUnique({
     where: { id: cardId },
@@ -43,7 +45,7 @@ router.get("/", async (req: AuthRequest, res) => {
   const comments = await prisma.comment.findMany({
     where: { cardId },
     orderBy: { createdAt: "asc" },
-    include: { author: { select: { id: true, name: true } } },
+    include: authorInclude,
   });
   res.json(comments);
 });
@@ -57,7 +59,7 @@ router.post("/", async (req: AuthRequest, res) => {
 
   const comment = await prisma.comment.create({
     data: { text: parsed.data.text, cardId: card.id, authorId: req.userId! },
-    include: { author: { select: { id: true, name: true } } },
+    include: authorInclude,
   });
   emitToBoard(card.list.boardId, "comment:created", comment);
   res.status(201).json(comment);
