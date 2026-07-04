@@ -29,7 +29,7 @@ Frontend: http://localhost:5173
 ## Тесты
 
 ```bash
-cd backend && npm test    # 30 тестов
+cd backend && npm test    # 36 тестов
 cd frontend && npm test   # 14 тестов
 ```
 
@@ -43,6 +43,7 @@ cd frontend && npm test   # 14 тестов
 - Поиск и фильтрация карточек по названию/меткам
 - Realtime-синхронизация через WebSocket
 - Приглашение участников на доску с ролями (ADMIN/EDITOR/VIEWER)
+- Уведомления (приглашение на доску, смена роли, новый комментарий) с доставкой в реальном времени
 - Rate limiting и security-заголовки (helmet)
 
 ## Roadmap
@@ -59,4 +60,4 @@ cd frontend && npm test   # 14 тестов
 - [x] Поиск и фильтры по карточкам
 - [x] Security hardening (helmet, rate limiting)
 - [x] Вложения к карточкам
-- [ ] Уведомления
+- [x] Уведомления
