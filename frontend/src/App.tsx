@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AppLayout } from "./components/AppLayout";
 import { RequireAuth } from "./components/RequireAuth";
 import { AuthProvider } from "./hooks/useAuth";
 import { BoardPage } from "./pages/BoardPage";
@@ -13,8 +14,10 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route element={<RequireAuth />}>
-          <Route path="/boards" element={<BoardsPage />} />
-          <Route path="/boards/:boardId" element={<BoardPage />} />
+          <Route element={<AppLayout />}>
+            <Route path="/boards" element={<BoardsPage />} />
+            <Route path="/boards/:boardId" element={<BoardPage />} />
+          </Route>
         </Route>
         <Route path="*" element={<Navigate to="/boards" replace />} />
       </Routes>

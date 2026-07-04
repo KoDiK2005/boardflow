@@ -12,6 +12,11 @@ export function useBoardSocket(
     socket.connect();
     socket.emit("join-board", boardId);
 
+    function onReconnect() {
+      socket.emit("join-board", boardId);
+    }
+    socket.on("connect", onReconnect);
+
     function updateList(listId: string, updater: (list: List) => List) {
       setBoard((prev) =>
         prev ? { ...prev, lists: prev.lists.map((l) => (l.id === listId ? updater(l) : l)) } : prev,
@@ -153,6 +158,7 @@ export function useBoardSocket(
 
     return () => {
       socket.emit("leave-board", boardId);
+      socket.off("connect", onReconnect);
       socket.off("list:created", onListCreated);
       socket.off("list:updated", onListUpdated);
       socket.off("list:deleted", onListDeleted);
@@ -165,7 +171,6 @@ export function useBoardSocket(
       socket.off("member:added", onMemberAdded);
       socket.off("member:removed", onMemberRemoved);
       socket.off("member:updated", onMemberUpdated);
-      socket.disconnect();
     };
   }, [boardId, setBoard]);
 }

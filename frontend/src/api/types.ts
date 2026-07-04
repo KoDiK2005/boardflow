@@ -72,3 +72,16 @@ export interface BoardDetail extends Board {
   labels: Label[];
   members: BoardMember[];
 }
+
+export type NotificationType = "BOARD_INVITE" | "ROLE_CHANGED" | "COMMENT";
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  message: string;
+  boardId: string | null;
+  cardId: string | null;
+  read: boolean;
+  createdAt: string;
+}
