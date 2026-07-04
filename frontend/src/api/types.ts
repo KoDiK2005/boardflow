@@ -45,10 +45,14 @@ export interface Card {
   labels: Label[];
 }
 
+export type BoardRole = "ADMIN" | "EDITOR" | "VIEWER";
+export type EffectiveRole = "OWNER" | BoardRole;
+
 export interface BoardMember {
   id: string;
   userId: string;
   boardId: string;
+  role: BoardRole;
   user: { id: string; name: string; email: string };
 }
 

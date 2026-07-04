@@ -9,9 +9,10 @@ interface Props {
   onAddCard: (listId: string, title: string) => void;
   onOpenCard: (card: List["cards"][number]) => void;
   onDeleteList: (listId: string) => void;
+  editable: boolean;
 }
 
-export function ListColumn({ list, onAddCard, onOpenCard, onDeleteList }: Props) {
+export function ListColumn({ list, onAddCard, onOpenCard, onDeleteList, editable }: Props) {
   const [title, setTitle] = useState("");
   const { setNodeRef } = useDroppable({ id: list.id, data: { type: "list", list } });
 
@@ -26,9 +27,11 @@ export function ListColumn({ list, onAddCard, onOpenCard, onDeleteList }: Props)
     <div className="list-column" ref={setNodeRef}>
       <div className="list-header">
         <h3>{list.title}</h3>
-        <button className="delete-list-btn" onClick={() => onDeleteList(list.id)} title="Удалить список">
-          ×
-        </button>
+        {editable && (
+          <button className="delete-list-btn" onClick={() => onDeleteList(list.id)} title="Удалить список">
+            ×
+          </button>
+        )}
       </div>
       <SortableContext items={list.cards.map((c) => c.id)} strategy={verticalListSortingStrategy}>
         <div className="cards">
@@ -37,14 +40,16 @@ export function ListColumn({ list, onAddCard, onOpenCard, onDeleteList }: Props)
           ))}
         </div>
       </SortableContext>
-      <form onSubmit={handleSubmit} className="new-card-form">
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Новая карточка"
-        />
-        <button type="submit">+</button>
-      </form>
+      {editable && (
+        <form onSubmit={handleSubmit} className="new-card-form">
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Новая карточка"
+          />
+          <button type="submit">+</button>
+        </form>
+      )}
     </div>
   );
 }

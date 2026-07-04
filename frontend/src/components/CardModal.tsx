@@ -6,12 +6,13 @@ import { Card, Comment, Label } from "../api/types";
 interface Props {
   card: Card;
   boardLabels: Label[];
+  editable: boolean;
   onClose: () => void;
   onUpdate: (card: Card) => void;
   onDelete: (cardId: string) => void;
 }
 
-export function CardModal({ card, boardLabels, onClose, onUpdate, onDelete }: Props) {
+export function CardModal({ card, boardLabels, editable, onClose, onUpdate, onDelete }: Props) {
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
   const [dueDate, setDueDate] = useState(card.dueDate ? card.dueDate.slice(0, 10) : "");
@@ -35,6 +36,7 @@ export function CardModal({ card, boardLabels, onClose, onUpdate, onDelete }: Pr
   }, [card.id]);
 
   async function handleSave() {
+    if (!editable) return;
     const { data } = await api.patch<Card>(`/cards/${card.id}`, {
       title,
       description: description || null,
@@ -79,6 +81,7 @@ export function CardModal({ card, boardLabels, onClose, onUpdate, onDelete }: Pr
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={handleSave}
+          readOnly={!editable}
         />
 
         <div className="modal-section">
@@ -89,7 +92,8 @@ export function CardModal({ card, boardLabels, onClose, onUpdate, onDelete }: Pr
                 key={label.id}
                 className={`label-chip ${card.labels.some((l) => l.id === label.id) ? "active" : ""}`}
                 style={{ backgroundColor: label.color }}
-                onClick={() => handleToggleLabel(label)}
+                onClick={() => editable && handleToggleLabel(label)}
+                disabled={!editable}
               >
                 {label.title}
               </button>
@@ -99,7 +103,13 @@ export function CardModal({ card, boardLabels, onClose, onUpdate, onDelete }: Pr
 
         <div className="modal-section">
           <h4>Дедлайн</h4>
-          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} onBlur={handleSave} />
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            onBlur={handleSave}
+            disabled={!editable}
+          />
         </div>
 
         <div className="modal-section">
@@ -109,6 +119,7 @@ export function CardModal({ card, boardLabels, onClose, onUpdate, onDelete }: Pr
             onChange={(e) => setDescription(e.target.value)}
             onBlur={handleSave}
             rows={4}
+            readOnly={!editable}
           />
         </div>
 
@@ -122,19 +133,23 @@ export function CardModal({ card, boardLabels, onClose, onUpdate, onDelete }: Pr
               </div>
             ))}
           </div>
-          <form onSubmit={handleAddComment} className="new-comment-form">
-            <input
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Написать комментарий..."
-            />
-            <button type="submit">Отправить</button>
-          </form>
+          {editable && (
+            <form onSubmit={handleAddComment} className="new-comment-form">
+              <input
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Написать комментарий..."
+              />
+              <button type="submit">Отправить</button>
+            </form>
+          )}
         </div>
 
-        <button className="delete-card-btn" onClick={handleDelete}>
-          Удалить карточку
-        </button>
+        {editable && (
+          <button className="delete-card-btn" onClick={handleDelete}>
+            Удалить карточку
+          </button>
+        )}
       </div>
     </div>
   );

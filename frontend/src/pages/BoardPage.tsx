@@ -2,6 +2,7 @@ import { DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { canEdit, getMyRole } from "../api/permissions";
 import { socket } from "../api/socket";
 import { BoardDetail, BoardMember, Card, Label, List } from "../api/types";
 import { CardModal } from "../components/CardModal";
@@ -159,8 +160,17 @@ export function BoardPage() {
       );
     }
 
+    function onMemberUpdated(member: BoardMember) {
+      setBoard((prev) =>
+        prev
+          ? { ...prev, members: prev.members.map((m) => (m.id === member.id ? member : m)) }
+          : prev,
+      );
+    }
+
     socket.on("member:added", onMemberAdded);
     socket.on("member:removed", onMemberRemoved);
+    socket.on("member:updated", onMemberUpdated);
 
     return () => {
       socket.emit("leave-board", boardId);
@@ -175,6 +185,7 @@ export function BoardPage() {
       socket.off("card:label-changed", onCardLabelChanged);
       socket.off("member:added", onMemberAdded);
       socket.off("member:removed", onMemberRemoved);
+      socket.off("member:updated", onMemberUpdated);
       socket.disconnect();
     };
   }, [boardId]);
@@ -288,6 +299,9 @@ export function BoardPage() {
 
   if (!board || !user) return <p>Загрузка...</p>;
 
+  const myRole = getMyRole(board, user.id);
+  const editable = canEdit(myRole);
+
   return (
     <div className="board-page">
       <input
@@ -295,29 +309,39 @@ export function BoardPage() {
         defaultValue={board.title}
         key={board.title}
         onBlur={(e) => handleRenameBoard(e.target.value)}
+        readOnly={!editable}
       />
+
+      {!editable && <p className="viewer-notice">Режим просмотра: у вас нет прав на редактирование</p>}
 
       <MembersPanel
         boardId={board.id}
-        ownerId={board.ownerId}
-        currentUserId={user.id}
+        myRole={myRole}
         members={board.members}
         onMemberAdded={(member) => setBoard({ ...board, members: [...board.members, member] })}
         onMemberRemoved={(userId) =>
           setBoard({ ...board, members: board.members.filter((m) => m.userId !== userId) })
         }
+        onMemberUpdated={(member) =>
+          setBoard({
+            ...board,
+            members: board.members.map((m) => (m.id === member.id ? member : m)),
+          })
+        }
       />
 
-      <form onSubmit={handleAddLabel} className="new-label-form">
-        <input
-          value={newLabelTitle}
-          onChange={(e) => setNewLabelTitle(e.target.value)}
-          placeholder="Новая метка"
-        />
-        <button type="submit">Добавить метку</button>
-      </form>
+      {editable && (
+        <form onSubmit={handleAddLabel} className="new-label-form">
+          <input
+            value={newLabelTitle}
+            onChange={(e) => setNewLabelTitle(e.target.value)}
+            placeholder="Новая метка"
+          />
+          <button type="submit">Добавить метку</button>
+        </form>
+      )}
 
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragEnd={editable ? handleDragEnd : undefined}>
         <div className="lists-row">
           {board.lists.map((list) => (
             <ListColumn
@@ -326,23 +350,27 @@ export function BoardPage() {
               onAddCard={handleAddCard}
               onOpenCard={setOpenCard}
               onDeleteList={handleDeleteList}
+              editable={editable}
             />
           ))}
         </div>
       </DndContext>
-      <form onSubmit={handleAddList} className="new-list-form">
-        <input
-          value={newListTitle}
-          onChange={(e) => setNewListTitle(e.target.value)}
-          placeholder="Новый список"
-        />
-        <button type="submit">Добавить список</button>
-      </form>
+      {editable && (
+        <form onSubmit={handleAddList} className="new-list-form">
+          <input
+            value={newListTitle}
+            onChange={(e) => setNewListTitle(e.target.value)}
+            placeholder="Новый список"
+          />
+          <button type="submit">Добавить список</button>
+        </form>
+      )}
 
       {openCard && (
         <CardModal
           card={openCard}
           boardLabels={board.labels}
+          editable={editable}
           onClose={() => setOpenCard(null)}
           onUpdate={handleCardUpdate}
           onDelete={handleCardDelete}
