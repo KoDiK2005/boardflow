@@ -17,6 +17,7 @@ model User {
   boards           Board[]
   comments         Comment[]
   boardMemberships BoardMember[]
+  attachments      Attachment[]
 }
 
 model Board {
@@ -75,8 +76,9 @@ model Card {
   listId      String
   createdAt   DateTime  @default(now())
 
-  labels   Label[]
-  comments Comment[]
+  labels      Label[]
+  comments    Comment[]
+  attachments Attachment[]
 
   @@index([listId])
 }
@@ -102,6 +104,21 @@ model Comment {
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String
   createdAt DateTime @default(now())
+
+  @@index([cardId])
+}
+
+model Attachment {
+  id           String   @id @default(uuid())
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  card         Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  cardId       String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  uploadedById String
+  createdAt    DateTime @default(now())
 
   @@index([cardId])
 }

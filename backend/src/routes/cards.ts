@@ -53,7 +53,7 @@ router.post("/", async (req: AuthRequest, res) => {
       listId: list.id,
       position: (maxPosition._max.position ?? -1) + 1,
     },
-    include: { labels: true },
+    include: { labels: true, _count: { select: { attachments: true } } },
   });
   emitToBoard(list.boardId, "card:created", card);
   res.status(201).json(card);
@@ -78,7 +78,7 @@ router.patch("/:id", async (req: AuthRequest, res) => {
       ...rest,
       ...(dueDate !== undefined ? { dueDate: dueDate ? new Date(dueDate) : null } : {}),
     },
-    include: { labels: true },
+    include: { labels: true, _count: { select: { attachments: true } } },
   });
   emitToBoard(card.list.boardId, "card:updated", updated);
   res.json(updated);

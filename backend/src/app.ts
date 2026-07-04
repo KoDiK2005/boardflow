@@ -8,6 +8,7 @@ import listRoutes from "./routes/lists";
 import cardRoutes from "./routes/cards";
 import labelRoutes from "./routes/labels";
 import commentRoutes from "./routes/comments";
+import attachmentRoutes from "./routes/attachments";
 
 export const app = express();
 
@@ -32,3 +33,4 @@ app.use("/api/lists", listRoutes);
 app.use("/api/cards", cardRoutes);
 app.use("/api/labels", labelRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api", attachmentRoutes);

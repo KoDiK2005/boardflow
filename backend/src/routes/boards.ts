@@ -58,7 +58,12 @@ router.get("/:id", async (req: AuthRequest, res) => {
     include: {
       lists: {
         orderBy: { position: "asc" },
-        include: { cards: { orderBy: { position: "asc" }, include: { labels: true } } },
+        include: {
+          cards: {
+            orderBy: { position: "asc" },
+            include: { labels: true, _count: { select: { attachments: true } } },
+          },
+        },
       },
       labels: true,
       members: { include: memberInclude },

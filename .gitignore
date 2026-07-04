@@ -9,3 +9,4 @@ coverage/
 .vscode/
 backend/prisma/dev.db
 *.tsbuildinfo
+backend/uploads/

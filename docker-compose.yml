@@ -31,6 +31,7 @@ services:
     volumes:
       - ./backend/src:/app/src
       - ./backend/prisma:/app/prisma
+      - backend_uploads:/app/uploads
     command: sh -c "npx prisma migrate deploy && npm run dev"
 
   frontend:
@@ -47,3 +48,4 @@ services:
 
 volumes:
   postgres_data:
+  backend_uploads:
