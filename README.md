@@ -29,8 +29,8 @@ Frontend: http://localhost:5173
 ## Тесты
 
 ```bash
-cd backend && npm test    # 25 тестов
-cd frontend && npm test   # 11 тестов
+cd backend && npm test    # 30 тестов
+cd frontend && npm test   # 14 тестов
 ```
 
 ## Функциональность
@@ -39,6 +39,7 @@ cd frontend && npm test   # 11 тестов
 - Доски, списки, карточки — полный CRUD
 - Drag-and-drop карточек и списков
 - Метки, дедлайны (с индикацией просрочки), комментарии
+- Вложения к карточкам (загрузка/скачивание/удаление файлов)
 - Поиск и фильтрация карточек по названию/меткам
 - Realtime-синхронизация через WebSocket
 - Приглашение участников на доску с ролями (ADMIN/EDITOR/VIEWER)
@@ -57,5 +58,5 @@ cd frontend && npm test   # 11 тестов
 - [x] Роли участников (ADMIN/EDITOR/VIEWER)
 - [x] Поиск и фильтры по карточкам
 - [x] Security hardening (helmet, rate limiting)
-- [ ] Вложения к карточкам
+- [x] Вложения к карточкам
 - [ ] Уведомления
