@@ -45,7 +45,15 @@ export interface Card {
   labels: Label[];
 }
 
+export interface BoardMember {
+  id: string;
+  userId: string;
+  boardId: string;
+  user: { id: string; name: string; email: string };
+}
+
 export interface BoardDetail extends Board {
   lists: List[];
   labels: Label[];
+  members: BoardMember[];
 }

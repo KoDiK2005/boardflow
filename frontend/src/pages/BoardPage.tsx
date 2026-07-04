@@ -3,11 +3,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { socket } from "../api/socket";
-import { BoardDetail, Card, Label, List } from "../api/types";
+import { BoardDetail, BoardMember, Card, Label, List } from "../api/types";
 import { CardModal } from "../components/CardModal";
 import { ListColumn } from "../components/ListColumn";
+import { MembersPanel } from "../components/MembersPanel";
+import { useAuth } from "../hooks/useAuth";
 
 export function BoardPage() {
+  const { user } = useAuth();
   const { boardId } = useParams<{ boardId: string }>();
   const [board, setBoard] = useState<BoardDetail | null>(null);
   const [newListTitle, setNewListTitle] = useState("");
@@ -142,6 +145,23 @@ export function BoardPage() {
     socket.on("label:deleted", onLabelDeleted);
     socket.on("card:label-changed", onCardLabelChanged);
 
+    function onMemberAdded(member: BoardMember) {
+      setBoard((prev) =>
+        prev && !prev.members.some((m) => m.id === member.id)
+          ? { ...prev, members: [...prev.members, member] }
+          : prev,
+      );
+    }
+
+    function onMemberRemoved({ userId }: { userId: string }) {
+      setBoard((prev) =>
+        prev ? { ...prev, members: prev.members.filter((m) => m.userId !== userId) } : prev,
+      );
+    }
+
+    socket.on("member:added", onMemberAdded);
+    socket.on("member:removed", onMemberRemoved);
+
     return () => {
       socket.emit("leave-board", boardId);
       socket.off("list:created", onListCreated);
@@ -153,6 +173,8 @@ export function BoardPage() {
       socket.off("label:created", onLabelCreated);
       socket.off("label:deleted", onLabelDeleted);
       socket.off("card:label-changed", onCardLabelChanged);
+      socket.off("member:added", onMemberAdded);
+      socket.off("member:removed", onMemberRemoved);
       socket.disconnect();
     };
   }, [boardId]);
@@ -264,7 +286,7 @@ export function BoardPage() {
     setOpenCard(null);
   }
 
-  if (!board) return <p>Загрузка...</p>;
+  if (!board || !user) return <p>Загрузка...</p>;
 
   return (
     <div className="board-page">
@@ -273,6 +295,17 @@ export function BoardPage() {
         defaultValue={board.title}
         key={board.title}
         onBlur={(e) => handleRenameBoard(e.target.value)}
+      />
+
+      <MembersPanel
+        boardId={board.id}
+        ownerId={board.ownerId}
+        currentUserId={user.id}
+        members={board.members}
+        onMemberAdded={(member) => setBoard({ ...board, members: [...board.members, member] })}
+        onMemberRemoved={(userId) =>
+          setBoard({ ...board, members: board.members.filter((m) => m.userId !== userId) })
+        }
       />
 
       <form onSubmit={handleAddLabel} className="new-label-form">
