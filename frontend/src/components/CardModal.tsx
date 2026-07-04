@@ -1,27 +1,40 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 import { formatFileSize } from "../api/format";
+import { encodeMentionToken, MentionableUser } from "../api/mentions";
 import { socket } from "../api/socket";
 import { Attachment, Card, Comment, Label } from "../api/types";
+import { MentionText } from "./MentionText";
 
 interface Props {
   card: Card;
   boardLabels: Label[];
+  mentionableUsers: MentionableUser[];
   editable: boolean;
   onClose: () => void;
   onUpdate: (card: Card) => void;
   onDelete: (cardId: string) => void;
 }
 
-export function CardModal({ card, boardLabels, editable, onClose, onUpdate, onDelete }: Props) {
+export function CardModal({
+  card,
+  boardLabels,
+  mentionableUsers,
+  editable,
+  onClose,
+  onUpdate,
+  onDelete,
+}: Props) {
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? "");
   const [dueDate, setDueDate] = useState(card.dueDate ? card.dueDate.slice(0, 10) : "");
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const commentInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.get<Comment[]>("/comments", { params: { cardId: card.id } }).then((res) => setComments(res.data));
@@ -145,6 +158,32 @@ export function CardModal({ card, boardLabels, editable, onClose, onUpdate, onDe
     const { data } = await api.post<Comment>("/comments", { cardId: card.id, text: newComment });
     setComments((prev) => (prev.some((c) => c.id === data.id) ? prev : [...prev, data]));
     setNewComment("");
+    setMentionQuery(null);
+  }
+
+  function handleCommentInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    setNewComment(value);
+    const cursor = e.target.selectionStart ?? value.length;
+    const match = value.slice(0, cursor).match(/@([A-Za-z0-9]*)$/);
+    setMentionQuery(match ? match[1] : null);
+  }
+
+  const mentionSuggestions =
+    mentionQuery !== null
+      ? mentionableUsers
+          .filter((u) => u.name.toLowerCase().replace(/\s+/g, "").startsWith(mentionQuery.toLowerCase()))
+          .slice(0, 5)
+      : [];
+
+  function handleSelectMention(user: MentionableUser) {
+    const input = commentInputRef.current;
+    const cursor = input?.selectionStart ?? newComment.length;
+    const before = newComment.slice(0, cursor).replace(/@([A-Za-z0-9]*)$/, `@${encodeMentionToken(user.name)} `);
+    const newValue = before + newComment.slice(cursor);
+    setNewComment(newValue);
+    setMentionQuery(null);
+    requestAnimationFrame(() => input?.focus());
   }
 
   async function handleDelete() {
@@ -252,17 +291,36 @@ export function CardModal({ card, boardLabels, editable, onClose, onUpdate, onDe
                     </button>
                   )}
                 </div>
-                <p>{c.text}</p>
+                <p>
+                  <MentionText text={c.text} users={mentionableUsers} />
+                </p>
               </div>
             ))}
           </div>
           {editable && (
             <form onSubmit={handleAddComment} className="new-comment-form">
-              <input
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Написать комментарий..."
-              />
+              <div className="mention-input-wrapper">
+                <input
+                  ref={commentInputRef}
+                  value={newComment}
+                  onChange={handleCommentInputChange}
+                  placeholder="Написать комментарий... (@ для упоминания)"
+                />
+                {mentionSuggestions.length > 0 && (
+                  <div className="mention-suggestions">
+                    {mentionSuggestions.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className="mention-suggestion-item"
+                        onClick={() => handleSelectMention(u)}
+                      >
+                        {u.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <button type="submit">Отправить</button>
             </form>
           )}

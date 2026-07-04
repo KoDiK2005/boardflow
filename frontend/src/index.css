@@ -484,6 +484,51 @@ body {
   border-radius: 4px;
 }
 
+.mention-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.mention-input-wrapper input {
+  width: 100%;
+}
+
+.mention-suggestions {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #dfe1e6;
+  border-radius: 4px;
+  box-shadow: 0 -2px 8px rgba(9, 30, 66, 0.15);
+  z-index: 10;
+  margin-bottom: 0.25rem;
+}
+
+.mention-suggestion-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.mention-suggestion-item:hover {
+  background: #f4f5f7;
+}
+
+.mention-highlight {
+  background: #e6f0ff;
+  color: #0052cc;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 600;
+}
+
 .delete-card-btn {
   background: #de350b;
   color: white;

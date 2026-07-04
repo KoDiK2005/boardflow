@@ -11,6 +11,7 @@ function makeBoard(overrides: Partial<BoardDetail> = {}): BoardDetail {
     lists: [],
     labels: [],
     members: [],
+    owner: { id: "owner-1", name: "Board Owner" },
     ...overrides,
   };
 }

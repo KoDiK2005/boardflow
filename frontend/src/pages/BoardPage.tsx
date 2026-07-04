@@ -11,6 +11,7 @@ import { horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortabl
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
+import { getMentionableUsers } from "../api/mentions";
 import { canEdit, getMyRole } from "../api/permissions";
 import { BoardDetail, Card } from "../api/types";
 import { CardModal } from "../components/CardModal";
@@ -311,6 +312,7 @@ export function BoardPage() {
         <CardModal
           card={openCard}
           boardLabels={board.labels}
+          mentionableUsers={getMentionableUsers(board)}
           editable={editable}
           onClose={() => setOpenCard(null)}
           onUpdate={handleCardUpdate}

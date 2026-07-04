@@ -71,9 +71,10 @@ export interface BoardDetail extends Board {
   lists: List[];
   labels: Label[];
   members: BoardMember[];
+  owner: { id: string; name: string };
 }
 
-export type NotificationType = "BOARD_INVITE" | "ROLE_CHANGED" | "COMMENT";
+export type NotificationType = "BOARD_INVITE" | "ROLE_CHANGED" | "COMMENT" | "MENTION";
 
 export interface Notification {
   id: string;
