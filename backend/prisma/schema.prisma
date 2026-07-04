@@ -14,7 +14,8 @@ model User {
   name         String
   createdAt    DateTime @default(now())
 
-  boards Board[]
+  boards   Board[]
+  comments Comment[]
 }
 
 model Board {
@@ -24,7 +25,8 @@ model Board {
   ownerId   String
   createdAt DateTime @default(now())
 
-  lists List[]
+  lists  List[]
+  labels Label[]
 
   @@index([ownerId])
 }
@@ -52,5 +54,33 @@ model Card {
   listId      String
   createdAt   DateTime  @default(now())
 
+  labels   Label[]
+  comments Comment[]
+
   @@index([listId])
+}
+
+model Label {
+  id        String   @id @default(uuid())
+  title     String
+  color     String
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  boardId   String
+  createdAt DateTime @default(now())
+
+  cards Card[]
+
+  @@index([boardId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  text      String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  cardId    String
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  createdAt DateTime @default(now())
+
+  @@index([cardId])
 }
