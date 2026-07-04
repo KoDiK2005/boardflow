@@ -30,9 +30,16 @@ router.post("/", async (req: AuthRequest, res) => {
   if (!ctx) return res.status(404).json({ error: "Board not found" });
   if (!canEdit(ctx.role)) return res.status(403).json({ error: "Insufficient permissions" });
 
-  const count = await prisma.list.count({ where: { boardId: ctx.board.id } });
+  const maxPosition = await prisma.list.aggregate({
+    where: { boardId: ctx.board.id },
+    _max: { position: true },
+  });
   const list = await prisma.list.create({
-    data: { title: parsed.data.title, boardId: ctx.board.id, position: count },
+    data: {
+      title: parsed.data.title,
+      boardId: ctx.board.id,
+      position: (maxPosition._max.position ?? -1) + 1,
+    },
   });
   emitToBoard(ctx.board.id, "list:created", list);
   res.status(201).json(list);

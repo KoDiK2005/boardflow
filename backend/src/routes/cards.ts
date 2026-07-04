@@ -41,14 +41,17 @@ router.post("/", async (req: AuthRequest, res) => {
   const list = await assertListOwnership(parsed.data.listId, req.userId!);
   if (!list) return res.status(404).json({ error: "List not found" });
 
-  const count = await prisma.card.count({ where: { listId: list.id } });
+  const maxPosition = await prisma.card.aggregate({
+    where: { listId: list.id },
+    _max: { position: true },
+  });
   const card = await prisma.card.create({
     data: {
       title: parsed.data.title,
       description: parsed.data.description,
       dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : undefined,
       listId: list.id,
-      position: count,
+      position: (maxPosition._max.position ?? -1) + 1,
     },
     include: { labels: true },
   });
