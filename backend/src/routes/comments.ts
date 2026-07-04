@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { hasBoardAccess } from "../lib/access";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { emitToBoard } from "../socket";
@@ -17,8 +18,9 @@ async function assertCardAccess(cardId: string, userId: string) {
     where: { id: cardId },
     include: { list: { include: { board: true } } },
   });
-  if (!card || card.list.board.ownerId !== userId) return null;
-  return card;
+  if (!card) return null;
+  const allowed = await hasBoardAccess(card.list.board.ownerId, card.list.boardId, userId);
+  return allowed ? card : null;
 }
 
 router.get("/", async (req: AuthRequest, res) => {
@@ -56,7 +58,10 @@ router.delete("/:id", async (req: AuthRequest, res) => {
     where: { id: req.params.id },
     include: { card: { include: { list: { include: { board: true } } } } },
   });
-  if (!comment || comment.card.list.board.ownerId !== req.userId) {
+  if (
+    !comment ||
+    !(await hasBoardAccess(comment.card.list.board.ownerId, comment.card.list.boardId, req.userId!))
+  ) {
     return res.status(404).json({ error: "Comment not found" });
   }
 

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { hasBoardAccess } from "../lib/access";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
 import { assertListOwnership } from "./lists";
@@ -28,8 +29,9 @@ async function assertCardOwnership(cardId: string, userId: string) {
     where: { id: cardId },
     include: { list: { include: { board: true } } },
   });
-  if (!card || card.list.board.ownerId !== userId) return null;
-  return card;
+  if (!card) return null;
+  const allowed = await hasBoardAccess(card.list.board.ownerId, card.list.boardId, userId);
+  return allowed ? card : null;
 }
 
 router.post("/", async (req: AuthRequest, res) => {

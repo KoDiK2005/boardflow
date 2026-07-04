@@ -6,6 +6,7 @@ beforeEach(async () => {
   await prisma.card.deleteMany();
   await prisma.list.deleteMany();
   await prisma.label.deleteMany();
+  await prisma.boardMember.deleteMany();
   await prisma.board.deleteMany();
   await prisma.user.deleteMany();
 });

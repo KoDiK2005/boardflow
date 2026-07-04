@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
+import { hasBoardAccess } from "../lib/access";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
-import { assertBoardOwnership } from "./boards";
+import { assertBoardAccess } from "./boards";
 import { emitToBoard } from "../socket";
 
 const router = Router();
@@ -18,7 +19,7 @@ router.get("/", async (req: AuthRequest, res) => {
   const boardId = req.query.boardId as string | undefined;
   if (!boardId) return res.status(400).json({ error: "boardId is required" });
 
-  const board = await assertBoardOwnership(boardId, req.userId!);
+  const board = await assertBoardAccess(boardId, req.userId!);
   if (!board) return res.status(404).json({ error: "Board not found" });
 
   const labels = await prisma.label.findMany({ where: { boardId } });
@@ -29,7 +30,7 @@ router.post("/", async (req: AuthRequest, res) => {
   const parsed = createLabelSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
-  const board = await assertBoardOwnership(parsed.data.boardId, req.userId!);
+  const board = await assertBoardAccess(parsed.data.boardId, req.userId!);
   if (!board) return res.status(404).json({ error: "Board not found" });
 
   const label = await prisma.label.create({
@@ -44,7 +45,7 @@ router.post("/:id/cards/:cardId", async (req: AuthRequest, res) => {
     where: { id: req.params.id },
     include: { board: true },
   });
-  if (!label || label.board.ownerId !== req.userId) {
+  if (!label || !(await hasBoardAccess(label.board.ownerId, label.boardId, req.userId!))) {
     return res.status(404).json({ error: "Label not found" });
   }
 
@@ -52,7 +53,10 @@ router.post("/:id/cards/:cardId", async (req: AuthRequest, res) => {
     where: { id: req.params.cardId },
     include: { list: { include: { board: true } } },
   });
-  if (!card || card.list.board.ownerId !== req.userId) {
+  if (
+    !card ||
+    !(await hasBoardAccess(card.list.board.ownerId, card.list.boardId, req.userId!))
+  ) {
     return res.status(404).json({ error: "Card not found" });
   }
 
@@ -73,7 +77,7 @@ router.delete("/:id/cards/:cardId", async (req: AuthRequest, res) => {
     where: { id: req.params.id },
     include: { board: true },
   });
-  if (!label || label.board.ownerId !== req.userId) {
+  if (!label || !(await hasBoardAccess(label.board.ownerId, label.boardId, req.userId!))) {
     return res.status(404).json({ error: "Label not found" });
   }
 
@@ -94,7 +98,7 @@ router.delete("/:id", async (req: AuthRequest, res) => {
     where: { id: req.params.id },
     include: { board: true },
   });
-  if (!label || label.board.ownerId !== req.userId) {
+  if (!label || !(await hasBoardAccess(label.board.ownerId, label.boardId, req.userId!))) {
     return res.status(404).json({ error: "Label not found" });
   }
 

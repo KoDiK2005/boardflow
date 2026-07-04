@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
+import { hasBoardAccess } from "../lib/access";
 import { prisma } from "../lib/prisma";
 import { AuthRequest, requireAuth } from "../middleware/auth";
-import { assertBoardOwnership } from "./boards";
+import { assertBoardAccess } from "./boards";
 import { emitToBoard } from "../socket";
 
 const router = Router();
@@ -17,15 +18,16 @@ const reorderSchema = z.object({ position: z.number().int().min(0) });
 
 async function assertListOwnership(listId: string, userId: string) {
   const list = await prisma.list.findUnique({ where: { id: listId }, include: { board: true } });
-  if (!list || list.board.ownerId !== userId) return null;
-  return list;
+  if (!list) return null;
+  const allowed = await hasBoardAccess(list.board.ownerId, list.boardId, userId);
+  return allowed ? list : null;
 }
 
 router.post("/", async (req: AuthRequest, res) => {
   const parsed = createListSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
-  const board = await assertBoardOwnership(parsed.data.boardId, req.userId!);
+  const board = await assertBoardAccess(parsed.data.boardId, req.userId!);
   if (!board) return res.status(404).json({ error: "Board not found" });
 
   const count = await prisma.list.count({ where: { boardId: board.id } });
