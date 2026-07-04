@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { horizontalListSortingStrategy, SortableContext } from "@dnd-kit/sortable";
 import { FormEvent, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { getMentionableUsers } from "../api/mentions";
 import { canEdit, getMyRole } from "../api/permissions";
@@ -187,7 +187,7 @@ export function BoardPage() {
     });
   }
 
-  if (!board || !user) return <p>Загрузка...</p>;
+  if (!board || !user) return <p className="page-loading">Загрузка...</p>;
 
   const myRole = getMyRole(board, user.id);
   const editable = canEdit(myRole);
@@ -208,6 +208,9 @@ export function BoardPage() {
 
   return (
     <div className="board-page">
+      <Link to="/boards" className="back-link">
+        ← Все доски
+      </Link>
       <input
         className="board-title-input"
         defaultValue={board.title}
