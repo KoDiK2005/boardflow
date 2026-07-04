@@ -74,7 +74,13 @@ export interface BoardDetail extends Board {
   owner: { id: string; name: string };
 }
 
-export type NotificationType = "BOARD_INVITE" | "ROLE_CHANGED" | "COMMENT" | "MENTION";
+export type NotificationType =
+  | "BOARD_INVITE"
+  | "ROLE_CHANGED"
+  | "COMMENT"
+  | "MENTION"
+  | "DUE_SOON"
+  | "OVERDUE";
 
 export interface Notification {
   id: string;
